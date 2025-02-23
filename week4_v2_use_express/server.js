@@ -1,6 +1,13 @@
 require("dotenv").config();
 const http = require("http");
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const app = express();
+const creditPackageRouter = require("./routes/creditPackage");
+const skillRouter = require("./routes/coachesSkill");
 const AppDataSource = require("./db");
+
 function isUndefined(value) {
   return value === undefined;
 }
@@ -12,7 +19,7 @@ function isNotValidSting(value) {
 function isNotValidInteger(value) {
   return typeof value !== "number" || value < 0 || value % 1 !== 0;
 }
-
+/*
 const requestListener = async (req, res) => {
   const headers = {
     "Access-Control-Allow-Headers":
@@ -34,273 +41,6 @@ const requestListener = async (req, res) => {
       })
     );
     res.end();
-  } else if (req.url === "/api/credit-package" && req.method === "GET") {
-    try {
-      const packages = await AppDataSource.getRepository("CreditPackage").find({
-        select: ["id", "name", "credit_amount", "price"],
-      });
-      res.writeHead(200, headers);
-      res.write(
-        JSON.stringify({
-          status: "success",
-          data: packages,
-        })
-      );
-      res.end();
-    } catch (error) {
-      res.writeHead(500, headers);
-      res.write(
-        JSON.stringify({
-          status: "error",
-          message: "伺服器錯誤",
-        })
-      );
-      res.end();
-    }
-  } else if (req.url === "/api/credit-package" && req.method === "POST") {
-    req.on("end", async () => {
-      try {
-        const data = JSON.parse(body);
-        if (
-          isUndefined(data.name) ||
-          isNotValidSting(data.name) ||
-          isUndefined(data.credit_amount) ||
-          isNotValidInteger(data.credit_amount) ||
-          isUndefined(data.price) ||
-          isNotValidInteger(data.price)
-        ) {
-          res.writeHead(400, headers);
-          res.write(
-            JSON.stringify({
-              status: "failed",
-              message: "欄位未填寫正確",
-            })
-          );
-          res.end();
-          return;
-        }
-        const creditPackageRepo = await AppDataSource.getRepository(
-          "CreditPackage"
-        );
-        const existPackage = await creditPackageRepo.find({
-          where: {
-            name: data.name,
-          },
-        });
-        if (existPackage.length > 0) {
-          res.writeHead(409, headers);
-          res.write(
-            JSON.stringify({
-              status: "failed",
-              message: "資料重複",
-            })
-          );
-          res.end();
-          return;
-        }
-        const newPackage = await creditPackageRepo.create({
-          name: data.name,
-          credit_amount: data.credit_amount,
-          price: data.price,
-        });
-        const result = await creditPackageRepo.save(newPackage);
-        res.writeHead(200, headers);
-        res.write(
-          JSON.stringify({
-            status: "success",
-            data: result,
-          })
-        );
-        res.end();
-      } catch (error) {
-        console.error(error);
-        res.writeHead(500, headers);
-        res.write(
-          JSON.stringify({
-            status: "error",
-            message: "伺服器錯誤",
-          })
-        );
-        res.end();
-      }
-    });
-  } else if (
-    req.url.startsWith("/api/credit-package/") &&
-    req.method === "DELETE"
-  ) {
-    try {
-      const packageId = req.url.split("/").pop();
-      if (isUndefined(packageId) || isNotValidSting(packageId)) {
-        res.writeHead(400, headers);
-        res.write(
-          JSON.stringify({
-            status: "failed",
-            message: "ID錯誤",
-          })
-        );
-        res.end();
-        return;
-      }
-      const result = await AppDataSource.getRepository("CreditPackage").delete(
-        packageId
-      );
-      if (result.affected === 0) {
-        res.writeHead(400, headers);
-        res.write(
-          JSON.stringify({
-            status: "failed",
-            message: "ID錯誤",
-          })
-        );
-        res.end();
-        return;
-      }
-      res.writeHead(200, headers);
-      res.write(
-        JSON.stringify({
-          status: "success",
-        })
-      );
-      res.end();
-    } catch (error) {
-      console.error(error);
-      res.writeHead(500, headers);
-      res.write(
-        JSON.stringify({
-          status: "error",
-          message: "伺服器錯誤",
-        })
-      );
-      res.end();
-    }
-  } else if (req.url === "/api/coaches/skill" && req.method === "GET") {
-    try {
-      const packages_skill = await AppDataSource.getRepository("Skill").find({
-        select: ["id", "name"],
-      });
-      res.writeHead(200, headers);
-      res.write(
-        JSON.stringify({
-          status: "success",
-          data: packages_skill,
-        })
-      );
-      res.end();
-    } catch (error) {
-      res.writeHead(500, headers);
-      res.write(
-        JSON.stringify({
-          status: "error",
-          message: "伺服器錯誤",
-        })
-      );
-      res.end();
-    }
-  } else if (req.url === "/api/coaches/skill" && req.method === "POST") {
-    req.on("end", async () => {
-      try {
-        const data = JSON.parse(body);
-        if (isUndefined(data.name) || isNotValidSting(data.name)) {
-          res.writeHead(400, headers);
-          res.write(
-            JSON.stringify({
-              status: "failed",
-              message: "欄位未填寫正確2",
-            })
-          );
-          res.end();
-          return;
-        }
-        const SkillPackageRepo = await AppDataSource.getRepository("Skill");
-        const existPackage = await SkillPackageRepo.find({
-          where: {
-            name: data.name,
-          },
-        });
-        if (existPackage.length > 0) {
-          res.writeHead(409, headers);
-          res.write(
-            JSON.stringify({
-              status: "failed",
-              message: "資料重複",
-            })
-          );
-          res.end();
-          return;
-        }
-        const newPackage = await SkillPackageRepo.create({
-          name: data.name,
-        });
-        const result = await SkillPackageRepo.save(newPackage);
-        res.writeHead(200, headers);
-        res.write(
-          JSON.stringify({
-            status: "success",
-            data: result,
-          })
-        );
-        res.end();
-      } catch (error) {
-        console.error(error);
-        res.writeHead(500, headers);
-        res.write(
-          JSON.stringify({
-            status: "error",
-            message: "伺服器錯誤",
-          })
-        );
-        res.end();
-      }
-    });
-  } else if (
-    req.url.startsWith("/api/coaches/skill/") &&
-    req.method === "DELETE"
-  ) {
-    try {
-      const packageId = req.url.split("/").pop();
-      if (isUndefined(packageId) || isNotValidSting(packageId)) {
-        res.writeHead(400, headers);
-        res.write(
-          JSON.stringify({
-            status: "failed",
-            message: "ID錯誤",
-          })
-        );
-        res.end();
-        return;
-      }
-      const result = await AppDataSource.getRepository("Skill").delete(
-        packageId
-      );
-      if (result.affected === 0) {
-        res.writeHead(400, headers);
-        res.write(
-          JSON.stringify({
-            status: "failed",
-            message: "ID錯誤",
-          })
-        );
-        res.end();
-        return;
-      }
-      res.writeHead(200, headers);
-      res.write(
-        JSON.stringify({
-          status: "success",
-        })
-      );
-      res.end();
-    } catch (error) {
-      console.error(error);
-      res.writeHead(500, headers);
-      res.write(
-        JSON.stringify({
-          status: "error",
-          message: "伺服器錯誤",
-        })
-      );
-      res.end();
-    }
   } else if (req.method === "OPTIONS") {
     res.writeHead(200, headers);
     res.end();
@@ -327,3 +67,24 @@ async function startServer() {
 }
 
 module.exports = startServer();
+*/
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/api/credit-package", creditPackageRouter);
+app.use("/api/coaches/skill/", skillRouter);
+
+// 監聽 port
+const port = process.env.PORT || 3001;
+app.listen(port, async () => {
+  try {
+    await AppDataSource.initialize();
+    console.log("資料庫連線成功");
+    console.log(`伺服器運作中. port: ${port}`);
+  } catch (error) {
+    console.log(`資料庫連線失敗: ${error.message}`);
+    process.exit(1);
+  }
+});
